@@ -11,6 +11,8 @@ local Position = Component({x = 0, y = 0})
 local Velocity = Component({vx = 5, vy = 5})
 local Direction = Component({x = 0, y = 0})
 
+local Sprite = Component({value = nil})
+
 local Movable = Query.Filter(function (entity)
     return entity[Velocity].vx > 0 or entity[Velocity].vy > 0
 end)
@@ -37,7 +39,20 @@ local RenderCharacterSystem = System('render', 1, Query.All(MainCharacter), func
 end)
 
 
-local DirectionByKeyboardInputSystem = System('process', 2, Query.All(MainCharacter), function (self, deltaTime)
+local SpriteRender = System('render', 1, Query.All(Sprite, Position, Direction), function (self)
+    self:Result():ForEach(function (entity)
+        local pos = entity[Position]
+        local spr = entity[Sprite].value
+        local dir = entity[Direction]
+        local angle = math.atan2 (dir.x, -dir.y)
+        local oy = spr:getWidth() / 2
+        local ox = spr:getHeight() / 2
+        love.graphics.draw(spr, pos.x, pos.y, angle, 0.5, 0.5, ox, oy)
+    end)
+end)
+
+
+local DirectionByKeyboardInputSystem = System('process', 2, Query.All(MainCharacter).Any(Direction), function (self, deltaTime)
     local direction = {x = 0, y = 0}
     if love.keyboard.isDown('right') then
         direction.x = 1
@@ -63,19 +78,34 @@ local DirectionByKeyboardInputSystem = System('process', 2, Query.All(MainCharac
     end)
 end)
 
+local SpeedUpByKeyboardInputSystem = System('process', 2, Query.All(MainCharacter).Any(Velocity), function (self)
+    local velocity = Velocity({vx = 5, vy = 5})
+    if love.keyboard.isDown('lshift') then
+        velocity.vx = 10
+        velocity.vy = 10
+    end
+    self:Result():ForEach(function (entity)
+        entity[Velocity] = velocity
+    end)
+end)
+
 function love.load()
+    local sprite = love.graphics.newImage('rocket.png')
 
     GameWorld = World()
     
     MainCharacter = GameWorld:Entity(
         Position({x = love.graphics.getWidth() / 2, y = love.graphics.getHeight() / 2}),
         Velocity({vx = 5, vy = 5}),
-        Direction({x = 0, y = 0})
+        Direction({x = 0, y = -1}),
+        Sprite({value = sprite})
     )
     
     GameWorld:AddSystem(MoveCharacterSystem)
     GameWorld:AddSystem(RenderCharacterSystem)
     GameWorld:AddSystem(DirectionByKeyboardInputSystem)
+    GameWorld:AddSystem(SpeedUpByKeyboardInputSystem)
+    GameWorld:AddSystem(SpriteRender)
 end
 
 
