@@ -1,0 +1,6 @@
+[submodule "lib/anim8"]
+	path = lib/anim8
+	url = git@github.com:kikito/anim8.git
+[submodule "lib/ecs-lua"]
+	path = lib/ecs-lua
+	url = git@github.com:nidorx/ecs-lua.git
